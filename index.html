@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Movie Recommendation System</title>
+  <style>
+    :root {
+      --font-sans: 'Segoe UI', Tahoma, Verdana, sans-serif;
+      --clr-bg: #2c3e50;
+      --clr-card: #34495e;
+      --clr-primary: #3498db;
+      --clr-primary-hover: #2980b9;
+      --clr-text: #ecf0f1;
+      --clr-muted: #95a5a6;
+      --clr-error: #e74c3c;
+      --spacing: 1rem;
+      --radius: 8px;
+      --transition: 0.3s;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--clr-bg);
+      color: var(--clr-text);
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: var(--spacing);
+    }
+    header {
+      background: var(--clr-primary);
+      color: #fff;
+      padding: var(--spacing) 0;
+      margin-bottom: var(--spacing);
+    }
+    header .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+    }
+    #logo {
+      font-size: 3rem;
+      margin-right: 0.75rem;
+    }
+    .brand h1 {
+      font-size: 2.5rem;
+      margin: 0;
+      font-weight: bold;
+    }
+
+    .input-section {
+      background: var(--clr-card);
+      border-radius: var(--radius);
+      padding: var(--spacing);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: calc(var(--spacing) * 2);
+    }
+    .input-section h2 { margin-bottom: var(--spacing); }
+    .form-group { margin-bottom: var(--spacing); position: relative; }
+    label { display: block; font-weight: bold; margin-bottom: 0.5rem; }
+    input[type="number"] {
+      width: 100%;
+      padding: 0.75rem;
+      padding-right: 2.5rem;
+      border: 1px solid #ddd;
+      border-radius: var(--radius);
+      font-size: 1rem;
+    }
+    .input-clear {
+      position: absolute;
+      right: 0.5rem;
+      bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 1.5rem;
+      width: 1.5rem;
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--clr-muted);
+    }
+    .input-clear:hover { color: var(--clr-primary-hover); }
+
+    button {
+      background: var(--clr-primary);
+      color: #fff;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background var(--transition);
+    }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    button:hover:not(:disabled) { background: var(--clr-primary-hover); }
+    #toggle-theme {
+      background: transparent;
+      color: inherit;
+      font-size: 0.9rem;
+    }
+
+    .loading-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.2);
+      display: flex; align-items: center; justify-content: center;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity var(--transition), visibility var(--transition);
+    }
+    .loading-overlay.active {
+      visibility: visible;
+      opacity: 1;
+    }
+    .spinner {
+      border: 4px solid rgba(0,0,0,0.1);
+      border-top: 4px solid var(--clr-primary);
+      border-radius: 50%;
+      width: 40px; height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .results { display: none; }
+    .results.active { display: block; }
+    .results h2 { margin-bottom: var(--spacing); }
+
+    .recommendations-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: var(--spacing);
+    }
+    .movie-card {
+      background: var(--clr-card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: transform var(--transition), box-shadow var(--transition);
+      display: flex;
+      flex-direction: column;
+    }
+    .movie-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .movie-poster {
+      width: 100%;
+      height: 300px;
+      background-size: cover;
+      background-position: center;
+      border-top-left-radius: var(--radius);
+      border-top-right-radius: var(--radius);
+    }
+    .movie-info {
+      padding: 10px;
+    }
+    .movie-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      color: var(--clr-primary);
+      text-align: center;
+    }
+    .movie-genres {
+      font-size: 0.9rem;
+      color: var(--clr-muted);
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      header .container { flex-direction: column; text-align: center; }
+      .brand { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="brand">
+        <div id="logo" aria-label="logo" role="img">🎬</div>
+        <h1>Movie Recommendation</h1>
+      </div>
+      <button id="toggle-theme">☀️ Light Mode</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="input-section">
+      <h2>Get Movie Recommendations</h2>
+      <p>Enter your user ID:</p>
+      <div class="form-group">
+        <label for="user_id">User ID</label>
+        <input type="number" id="user_id" placeholder="e.g. 123" min="1" required>
+        <button class="input-clear" id="clear-input" aria-label="Clear input">×</button>
+      </div>
+      <button id="recommend-btn">Get Recommendations</button>
+    </section>
+
+    <section class="results" id="results">
+      <h2>Your Recommendations</h2>
+      <div class="recommendations-grid" id="recommendations-list"></div>
+    </section>
+  </main>
+
+  <div class="loading-overlay" id="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <script>
+    const btn = document.getElementById('recommend-btn');
+    const input = document.getElementById('user_id');
+    const clearBtn = document.getElementById('clear-input');
+    const userError = document.getElementById('user-error');
+    const loading = document.getElementById('loading');
+    const results = document.getElementById('results');
+    const list = document.getElementById('recommendations-list');
+    const toggle = document.getElementById('toggle-theme');
+    const htmlEl = document.documentElement;
+
+    toggle.addEventListener('click', () => {
+      const isDark = htmlEl.getAttribute('data-theme') === 'dark';
+      htmlEl.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      toggle.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+    });
+
+    clearBtn.addEventListener('click', () => {
+      input.value = '';
+    });
+
+    input.addEventListener('keyup', e => {
+      if (e.key === 'Enter') btn.click();
+    });
+
+    btn.addEventListener('click', () => {
+      const uid = input.value.trim();
+      if (!uid || Number(uid) < 1) {
+        alert('Please enter a valid user ID');
+        return;
+      }
+
+      btn.disabled = true;
+      loading.classList.add('active');
+      results.classList.remove('active');
+      list.innerHTML = '';
+
+      fetch('/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `user_id=${encodeURIComponent(uid)}`
+      })
+      .then(res => res.json())
+      .then(data => {
+        loading.classList.remove('active');
+        btn.disabled = false;
+
+        if (data.error) {
+          list.innerHTML = `<p style="color: var(--clr-error)">${data.error}</p>`;
+        } else if (!data.recommendations.length) {
+          list.innerHTML = `<p>No recommendations found.</p>`;
+        } else {
+          data.recommendations.forEach(movie => {
+            const el = document.createElement('article');
+            el.className = 'movie-card';
+            el.innerHTML = `
+              <div class="movie-poster" style="background-image: url('${movie.posterUrl}');"></div>
+              <div class="movie-info">
+                <div class="movie-title">${movie.title}</div>
+                <div class="movie-genres">${movie.genres}</div>
+              </div>
+            `;
+            list.appendChild(el);
+          });
+        }
+        results.classList.add('active');
+      })
+      .catch(err => {
+        console.error(err);
+        loading.classList.remove('active');
+        btn.disabled = false;
+        results.classList.add('active');
+        list.innerHTML = `<p style="color: var(--clr-error)">An error occurred. Please try again.</p>`;
+      });
+    });
+  </script>
+</body>
+</html>
